@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NoteNest – Engineering Notes Collaborator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #13161e;
+      --surface2: #1a1e2a;
+      --border: #252a38;
+      --accent: #00e5b0;
+      --accent2: #7b5ea7;
+      --accent3: #f7b731;
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --danger: #ef4444;
+      --radius: 12px;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'Space Mono', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 9999; opacity: .5;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 32px;
+      background: rgba(13,15,20,.92);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo {
+      font-family: var(--font-head); font-weight: 800; font-size: 1.4rem;
+      color: var(--accent); letter-spacing: -1px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-logo span { color: var(--text); }
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: .82rem;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .btn-nav {
+      background: var(--accent); color: #000; font-family: var(--font-mono);
+      font-weight: 700; font-size: .8rem; padding: 8px 18px;
+      border: none; border-radius: 6px; cursor: pointer; transition: opacity .2s;
+    }
+    .btn-nav:hover { opacity: .85; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
+    .hamburger span { width: 24px; height: 2px; background: var(--text); display: block; transition: .3s; }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 80px 32px 60px;
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+    }
+    .hero-badge {
+      display: inline-block; background: rgba(0,229,176,.1);
+      border: 1px solid rgba(0,229,176,.3); color: var(--accent);
+      padding: 4px 14px; border-radius: 50px; font-size: .72rem;
+      letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-family: var(--font-head); font-size: clamp(2rem, 5vw, 3.6rem);
+      font-weight: 800; line-height: 1.05; margin-bottom: 20px;
+    }
+    .hero h1 em { color: var(--accent); font-style: normal; }
+    .hero p { color: var(--muted); font-size: .9rem; line-height: 1.8; margin-bottom: 32px; }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--accent); color: #000; font-family: var(--font-mono);
+      font-weight: 700; padding: 12px 28px; border: none; border-radius: 8px;
+      cursor: pointer; font-size: .88rem; transition: transform .15s, opacity .2s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); opacity: .9; }
+    .btn-secondary {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); font-family: var(--font-mono);
+      padding: 12px 28px; border-radius: 8px; cursor: pointer; font-size: .88rem;
+      transition: border-color .2s;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── HERO VISUAL ── */
+    .hero-visual {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; position: relative; overflow: hidden;
+    }
+    .hero-visual::before {
+      content: ''; position: absolute; top: -40px; right: -40px;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(0,229,176,.15) 0%, transparent 70%);
+    }
+    .file-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 14px;
+      animation: slideIn .5s ease backwards;
+    }
+    .file-card:nth-child(2) { animation-delay: .1s; }
+    .file-card:nth-child(3) { animation-delay: .2s; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .file-icon {
+      width: 38px; height: 38px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+    }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name { font-size: .82rem; font-weight: 700; color: var(--text); }
+    .file-meta { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .file-badge {
+      font-size: .65rem; padding: 3px 8px; border-radius: 4px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 24px 32px; display: flex; justify-content: center; gap: 60px; flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-num { font-family: var(--font-head); font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+    .stat-label { font-size: .72rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── MAIN CONTENT ── */
+    .main-wrapper { max-width: 1200px; margin: 0 auto; padding: 48px 32px; }
+    .section-title {
+      font-family: var(--font-head); font-size: 1.6rem; font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .section-sub { color: var(--muted); font-size: .85rem; margin-bottom: 28px; }
+
+    /* ── BRANCH TABS ── */
+    .branch-tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+    .branch-tab {
+      padding: 7px 18px; border-radius: 50px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted); cursor: pointer; font-size: .78rem;
+      font-family: var(--font-mono); transition: all .2s;
+    }
+    .branch-tab.active, .branch-tab:hover {
+      border-color: var(--accent); color: var(--accent); background: rgba(0,229,176,.06);
+    }
+
+    /* ── SEARCH BAR ── */
+    .search-row {
+      display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1; min-width: 200px; background: var(--surface);
+      border: 1px solid var(--border); color: var(--text);
+      padding: 11px 16px; border-radius: 8px; font-family: var(--font-mono); font-size: .85rem;
+      outline: none; transition: border-color .2s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--muted); }
+    .filter-select {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      padding: 11px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: .82rem;
+      cursor: pointer; outline: none;
+    }
+
+    /* ── NOTES GRID ── */
+    .notes-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;
+    }
+    .note-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; cursor: pointer;
+      transition: border-color .2s, transform .2s;
+      position: relative; overflow: hidden;
+    }
+    .note-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .note-card::after {
+      content: ''; position: absolute; top: 0; left: 0;
+      height: 3px; width: 100%; background: var(--accent);
+      transform: scaleX(0); transform-origin: left; transition: transform .3s;
+    }
+    .note-card:hover::after { transform: scaleX(1); }
+    .note-type-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 5px; font-size: .68rem;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+    }
+    .note-title { font-family: var(--font-head); font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .note-desc { font-size: .78rem; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+    .note-footer { display: flex; justify-content: space-between; align-items: center; }
+    .note-author { display: flex; align-items: center; gap: 8px; font-size: .72rem; color: var(--muted); }
+    .avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: .6rem; font-weight: 700;
+    }
+    .note-date { font-size: .7rem; color: var(--muted); }
+    .note-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .action-btn {
+      flex: 1; padding: 7px; background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); border-radius: 6px; cursor: pointer; font-size: .72rem;
+      font-family: var(--font-mono); transition: all .2s; text-align: center;
+    }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── UPLOAD SECTION ── */
+    .upload-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px; margin-bottom: 48px;
+    }
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 48px 24px;
+      text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent); background: rgba(0,229,176,.04);
+    }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .upload-text { font-size: .9rem; color: var(--text); font-weight: 700; margin-bottom: 6px; }
+    .upload-sub { font-size: .78rem; color: var(--muted); }
+    .upload-meta { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    .meta-input {
+      flex: 1; min-width: 160px; background: var(--surface2);
+      border: 1px solid var(--border); color: var(--text);
+      padding: 10px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: .82rem;
+      outline: none; transition: border-color .2s;
+    }
+    .meta-input:focus { border-color: var(--accent); }
+    .meta-input::placeholder { color: var(--muted); }
+    .btn-upload {
+      width: 100%; margin-top: 14px; padding: 12px;
+      background: var(--accent); color: #000; border: none; border-radius: 8px;
+      font-family: var(--font-mono); font-weight: 700; font-size: .88rem; cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn-upload:hover { opacity: .88; }
+
+    /* ── PROGRESS BAR ── */
+    .progress-wrap {
+      display: none; margin-top: 16px; background: var(--surface2);
+      border-radius: 50px; height: 8px; overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%; background: var(--accent); border-radius: 50px;
+      width: 0%; transition: width .3s ease;
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 500;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px; width: 100%; max-width: 540px;
+      animation: modalIn .25s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.95) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-title { font-family: var(--font-head); font-size: 1.3rem; font-weight: 800; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: 6px; }
+    .form-input {
+      width: 100%; background: var(--surface2);
+      border: 1px solid var(--border); color: var(--text);
+      padding: 10px 14px; border-radius: 8px; font-family: var(--font-mono); font-size: .85rem;
+      outline: none; transition: border-color .2s;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
+    .btn-cancel {
+      flex: 1; padding: 11px; background: var(--surface2);
+      border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; cursor: pointer; font-family: var(--font-mono);
+    }
+    .btn-confirm {
+      flex: 1; padding: 11px; background: var(--accent);
+      color: #000; border: none; border-radius: 8px; cursor: pointer;
+      font-family: var(--font-mono); font-weight: 700;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--surface); border: 1px solid var(--accent);
+      color: var(--accent); padding: 12px 20px; border-radius: 8px;
+      font-size: .82rem; z-index: 9998; transform: translateY(60px); opacity: 0;
+      transition: all .3s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 32px; text-align: center; color: var(--muted); font-size: .78rem; margin-top: 60px;
+    }
+    footer strong { color: var(--accent); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+    }
+    @media (max-width: 680px) {
+      nav { padding: 14px 20px; }
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+      .hero { padding: 48px 20px 36px; }
+      .stats-bar { gap: 32px; padding: 20px; }
+      .main-wrapper { padding: 36px 20px; }
+      .notes-grid { grid-template-columns: 1fr; }
+      .upload-section { padding: 20px; }
+    }
+
+    /* ── MOBILE NAV MENU ── */
+    .mobile-nav {
+      display: none; flex-direction: column; gap: 16px;
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 20px; position: absolute; top: 100%; left: 0; right: 0; z-index: 99;
+    }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav a { color: var(--text); text-decoration: none; font-size: .9rem; }
+
+    /* ── TAG PILLS ── */
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .65rem; margin-right: 4px; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav style="position:relative;">
+  <div class="nav-logo">📚 <span>Note</span>Nest</div>
+  <div class="nav-links">
+    <a href="#notes">Notes</a>
+    <a href="#upload">Upload</a>
+    <a href="#about">About</a>
+    <button class="btn-nav" onclick="openModal('login')">Sign In</button>
+  </div>
+  <div class="hamburger" onclick="toggleMobileNav()" id="hamburger">
+    <span></span><span></span><span></span>
+  </div>
+  <div class="mobile-nav" id="mobileNav">
+    <a href="#notes">Notes</a>
+    <a href="#upload">Upload</a>
+    <a href="#about">About</a>
+    <button class="btn-nav" onclick="openModal('login')">Sign In</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div>
+    <div class="hero-badge">Engineering Students Platform</div>
+    <h1>Collaborate on<br/><em>Notes & Resources</em><br/>Together</h1>
+    <p>Upload, share, and discover engineering notes — PDFs, images, slides, and more. Build a shared knowledge base with your batchmates.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.getElementById('upload').scrollIntoView({behavior:'smooth'})">📤 Upload Notes</button>
+      <button class="btn-secondary" onclick="document.getElementById('notes').scrollIntoView({behavior:'smooth'})">Browse Notes →</button>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="file-card">
+      <div class="file-icon" style="background:rgba(239,68,68,.15);color:#ef4444;">📄</div>
+      <div class="file-info">
+        <div class="file-name">DBMS_Unit3_Notes.pdf</div>
+        <div class="file-meta">Computer Engg · 2.4 MB</div>
+      </div>
+      <span class="file-badge" style="background:rgba(239,68,68,.15);color:#ef4444;">PDF</span>
+    </div>
+    <div class="file-card">
+      <div class="file-icon" style="background:rgba(0,229,176,.15);color:#00e5b0;">🖼️</div>
+      <div class="file-info">
+        <div class="file-name">Circuit_Diagram_Exp4.png</div>
+        <div class="file-meta">Electronics · 1.1 MB</div>
+      </div>
+      <span class="file-badge" style="background:rgba(0,229,176,.15);color:#00e5b0;">IMG</span>
+    </div>
+    <div class="file-card">
+      <div class="file-icon" style="background:rgba(247,183,49,.15);color:#f7b731;">📊</div>
+      <div class="file-info">
+        <div class="file-name">DS_Algo_Slides.pptx</div>
+        <div class="file-meta">Computer Engg · 5.8 MB</div>
+      </div>
+      <span class="file-badge" style="background:rgba(247,183,49,.15);color:#f7b731;">PPTX</span>
+    </div>
+    <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border);display:flex;gap:20px;font-size:.76rem;color:var(--muted);">
+      <span>👁️ 3 contributors active</span>
+      <span style="color:var(--accent);">● Live</span>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" id="statNotes">248</div><div class="stat-label">Notes Shared</div></div>
+  <div class="stat"><div class="stat-num" id="statUsers">89</div><div class="stat-label">Students</div></div>
+  <div class="stat"><div class="stat-num" id="statBranches">6</div><div class="stat-label">Branches</div></div>
+  <div class="stat"><div class="stat-num" id="statDL">1.2k</div><div class="stat-label">Downloads</div></div>
+</div>
+
+<!-- MAIN -->
+<div class="main-wrapper">
+
+  <!-- UPLOAD SECTION -->
+  <section class="upload-section" id="upload">
+    <div class="section-title">📤 Upload Notes</div>
+    <div class="section-sub">Share PDFs, images, slides, and any study material with your branch</div>
+    <div class="upload-zone" id="dropZone">
+      <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.pptx,.docx,.xlsx,.mp4" onchange="handleFileSelect(this)"/>
+      <div class="upload-icon">🗂️</div>
+      <div class="upload-text">Drag & Drop files here or click to browse</div>
+      <div class="upload-sub">Supports: PDF, PNG, JPG, PPTX, DOCX, MP4 · Max 50 MB per file</div>
+    </div>
+    <div id="filePreview" style="margin-top:12px;display:none;">
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px;">Selected files:</div>
+      <div id="fileList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <div class="upload-meta">
+      <input type="text" class="meta-input" id="noteTitle" placeholder="Note title (e.g. DSA Unit 2 Trees)"/>
+      <select class="meta-input" id="noteBranch">
+        <option value="">Select Branch</option>
+        <option>Computer Engineering</option>
+        <option>Electronics & TC</option>
+        <option>Mechanical</option>
+        <option>Civil</option>
+        <option>Information Technology</option>
+        <option>Electrical</option>
+      </select>
+      <input type="text" class="meta-input" id="noteSubject" placeholder="Subject (e.g. DBMS)"/>
+      <select class="meta-input" id="noteSem">
+        <option value="">Semester</option>
+        <option>Sem 1</option><option>Sem 2</option><option>Sem 3</option><option>Sem 4</option>
+        <option>Sem 5</option><option>Sem 6</option><option>Sem 7</option><option>Sem 8</option>
+      </select>
+    </div>
+    <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+    <button class="btn-upload" onclick="uploadNotes()">⬆️ Upload Notes</button>
+  </section>
+
+  <!-- NOTES BROWSER -->
+  <section id="notes">
+    <div class="section-title">📂 Browse Notes</div>
+    <div class="section-sub">Find notes uploaded by your classmates</div>
+
+    <div class="branch-tabs" id="branchTabs">
+      <div class="branch-tab active" onclick="filterBranch('All',this)">All Branches</div>
+      <div class="branch-tab" onclick="filterBranch('Computer Engineering',this)">💻 CSE</div>
+      <div class="branch-tab" onclick="filterBranch('Electronics & TC',this)">📡 EXTC</div>
+      <div class="branch-tab" onclick="filterBranch('Mechanical',this)">⚙️ MECH</div>
+      <div class="branch-tab" onclick="filterBranch('Civil',this)">🏗️ CIVIL</div>
+      <div class="branch-tab" onclick="filterBranch('Information Technology',this)">🌐 IT</div>
+      <div class="branch-tab" onclick="filterBranch('Electrical',this)">⚡ EE</div>
+    </div>
+
+    <div class="search-row">
+      <input type="text" class="search-input" id="searchInput" placeholder="🔍  Search notes, subjects, topics..." oninput="filterNotes()"/>
+      <select class="filter-select" id="typeFilter" onchange="filterNotes()">
+        <option value="">All Types</option>
+        <option value="PDF">PDF</option>
+        <option value="Image">Image</option>
+        <option value="PPTX">PPTX</option>
+        <option value="DOCX">DOCX</option>
+      </select>
+      <select class="filter-select" id="semFilter" onchange="filterNotes()">
+        <option value="">All Sems</option>
+        <option>Sem 1</option><option>Sem 2</option><option>Sem 3</option><option>Sem 4</option>
+        <option>Sem 5</option><option>Sem 6</option><option>Sem 7</option><option>Sem 8</option>
+      </select>
+    </div>
+
+    <div class="notes-grid" id="notesGrid">
+      <!-- injected by JS -->
+    </div>
+  </section>
+</div>
+
+<!-- FOOTER -->
+<footer id="about">
+  <div style="margin-bottom:8px;">Built for 🎓 Engineering Students — <strong>NoteNest</strong></div>
+  <div>Share knowledge · Collaborate · Grow together</div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modalBox">
+    <div class="modal-title" id="modalTitle">Sign In</div>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" id="modalConfirm" onclick="confirmModal()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SAMPLE DATA ──
+const sampleNotes = [
+  { id:1, title:'DBMS Complete Notes – Unit 1-5', subject:'DBMS', branch:'Computer Engineering', sem:'Sem 5', type:'PDF', size:'4.2 MB', author:'Arjun M.', authorColor:'#7b5ea7', date:'Feb 26', downloads:42, tags:['SQL','Normalization','ER Diagram'] },
+  { id:2, title:'Digital Electronics – Logic Gates & Circuits', subject:'Digital Electronics', branch:'Electronics & TC', sem:'Sem 3', type:'PDF', size:'3.1 MB', author:'Priya S.', authorColor:'#00e5b0', date:'Feb 24', downloads:28, tags:['Gates','Flip Flops'] },
+  { id:3, title:'DS & Algorithms – Handwritten Notes', subject:'DSA', branch:'Computer Engineering', sem:'Sem 4', type:'Image', size:'8.7 MB', author:'Rohit K.', authorColor:'#f7b731', date:'Feb 22', downloads:61, tags:['Trees','Graphs','Sorting'] },
+  { id:4, title:'Engineering Thermodynamics Slides', subject:'Thermodynamics', branch:'Mechanical', sem:'Sem 4', type:'PPTX', size:'6.3 MB', author:'Sneha T.', authorColor:'#ef4444', date:'Feb 20', downloads:19, tags:['Laws','Cycles'] },
+  { id:5, title:'Computer Networks – Full Unit Notes', subject:'CN', branch:'Computer Engineering', sem:'Sem 6', type:'DOCX', size:'2.8 MB', author:'Aman P.', authorColor:'#3b82f6', date:'Feb 18', downloads:35, tags:['OSI','TCP/IP','Routing'] },
+  { id:6, title:'RCC Structures Lab Manual', subject:'RCC', branch:'Civil', sem:'Sem 6', type:'PDF', size:'5.1 MB', author:'Kavita R.', authorColor:'#10b981', date:'Feb 17', downloads:23, tags:['Beams','Columns'] },
+  { id:7, title:'Operating Systems – Process & Memory Mgmt', subject:'OS', branch:'Information Technology', sem:'Sem 5', type:'PDF', size:'3.6 MB', author:'Dev S.', authorColor:'#f97316', date:'Feb 15', downloads:48, tags:['Scheduling','Paging'] },
+  { id:8, title:'Power Systems Engineering Notes', subject:'Power Systems', branch:'Electrical', sem:'Sem 6', type:'PDF', size:'2.9 MB', author:'Nisha B.', authorColor:'#a855f7', date:'Feb 14', downloads:16, tags:['Transmission','Transformers'] },
+];
+
+const typeColors = {
+  PDF: { bg:'rgba(239,68,68,.12)', color:'#ef4444' },
+  Image: { bg:'rgba(0,229,176,.12)', color:'#00e5b0' },
+  PPTX: { bg:'rgba(247,183,49,.12)', color:'#f7b731' },
+  DOCX: { bg:'rgba(59,130,246,.12)', color:'#3b82f6' },
+};
+const typeIcons = { PDF:'📄', Image:'🖼️', PPTX:'📊', DOCX:'📝' };
+
+let currentBranch = 'All';
+let allNotes = [...sampleNotes];
+
+function renderNotes(notes) {
+  const grid = document.getElementById('notesGrid');
+  if (!notes.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--muted);">No notes found. Try a different filter.</div>`;
+    return;
+  }
+  grid.innerHTML = notes.map(n => {
+    const tc = typeColors[n.type] || typeColors.PDF;
+    const tags = n.tags.map(t => `<span class="tag" style="background:rgba(255,255,255,.05);color:var(--muted);">${t}</span>`).join('');
+    const sid = String(n.id); // always pass as string so MongoDB IDs work in onclick
+    return `
+    <div class="note-card" onclick="viewNote('${sid}')">
+      <div class="note-type-badge" style="background:${tc.bg};color:${tc.color};">
+        ${typeIcons[n.type]||'📁'} ${n.type}
+      </div>
+      <div class="note-title">${n.title}</div>
+      <div class="note-desc">${n.subject} · ${n.branch} · ${n.sem}</div>
+      <div style="margin-bottom:10px;">${tags}</div>
+      <div class="note-footer">
+        <div class="note-author">
+          <div class="avatar" style="background:${n.authorColor}20;color:${n.authorColor};">${n.author[0]}</div>
+          ${n.author}
+        </div>
+        <div class="note-date">${n.date}</div>
+      </div>
+      <div class="note-actions">
+        <button class="action-btn" onclick="event.stopPropagation();downloadNote('${sid}')">⬇️ Download</button>
+        <button class="action-btn" onclick="event.stopPropagation();shareNote('${sid}')">🔗 Share</button>
+        <button class="action-btn" onclick="event.stopPropagation();likeNote('${sid}',this)">❤️ ${n.downloads}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterNotes() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const type = document.getElementById('typeFilter').value;
+  const sem = document.getElementById('semFilter').value;
+  let filtered = allNotes.filter(n => {
+    const matchBranch = currentBranch === 'All' || n.branch === currentBranch;
+    const matchQ = !q || n.title.toLowerCase().includes(q) || n.subject.toLowerCase().includes(q) || n.tags.some(t=>t.toLowerCase().includes(q));
+    const matchType = !type || n.type === type;
+    const matchSem = !sem || n.sem === sem;
+    return matchBranch && matchQ && matchType && matchSem;
+  });
+  renderNotes(filtered);
+}
+
+function filterBranch(branch, el) {
+  currentBranch = branch;
+  document.querySelectorAll('.branch-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  filterNotes();
+}
+
+function viewNote(id) {
+  // Match by string or number id
+  const n = allNotes.find(x => String(x.id) === String(id));
+  if (!n) return;
+  const isSample = (typeof n.id === 'number');
+  document.getElementById('modalTitle').textContent = n.title;
+  document.getElementById('modalBody').innerHTML = `
+    <div style="background:var(--surface2);border-radius:8px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:4px;">Subject · Branch · Semester</div>
+      <div style="font-size:.9rem;">${n.subject} · ${n.branch} · ${n.sem}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:.7rem;color:var(--muted);">Type</div>
+        <div style="font-weight:700;margin-top:4px;">${n.type}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:.7rem;color:var(--muted);">Size</div>
+        <div style="font-weight:700;margin-top:4px;">${n.size}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:.7rem;color:var(--muted);">❤️ Likes</div>
+        <div style="font-weight:700;margin-top:4px;">${n.downloads}</div>
+      </div>
+    </div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:${isSample ? 12 : 0}px;">Uploaded by <strong style="color:var(--text)">${n.author}</strong> on ${n.date}</div>
+    ${isSample ? '<div style="background:rgba(247,183,49,.1);border:1px solid rgba(247,183,49,.3);border-radius:8px;padding:10px 14px;font-size:.76rem;color:#f7b731;">⚠️ This is a demo note. Upload a real file to enable download.</div>' : ''}
+  `;
+  const confirmBtn = document.getElementById('modalConfirm');
+  if (isSample) {
+    confirmBtn.textContent = '⚠️ Demo Only';
+    confirmBtn.style.opacity = '0.5';
+    confirmBtn.style.cursor = 'not-allowed';
+    confirmBtn.onclick = () => showToast('⚠️ Demo note — no real file attached');
+  } else {
+    confirmBtn.textContent = '⬇️ Download File';
+    confirmBtn.style.opacity = '1';
+    confirmBtn.style.cursor = 'pointer';
+    confirmBtn.onclick = () => { downloadNote(String(n.id)); closeModal(); };
+  }
+  openModal();
+}
+
+function downloadNote(id) {
+  const n = allNotes.find(x => String(x.id) === String(id));
+  if (!n) return showToast('❌ Note not found');
+
+  // Sample demo notes (numeric ids 1-8) have no real file
+  if (!isNaN(Number(id)) && Number(id) <= 100) {
+    showToast('⚠️ Demo note — upload a real file to download it');
+    return;
+  }
+
+  // Real MongoDB note — use hidden <a> to bypass popup blocker
+  showToast('⬇️ Preparing download...');
+  const url = '/api/notes/' + id + '/download/0';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '';          // let server set filename via Content-Disposition
+  a.target   = '_self';     // same tab, no popup
+  a.rel      = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function () { document.body.removeChild(a); }, 2000);
+}
+
+function shareNote(id) {
+  const n = allNotes.find(x => String(x.id) === String(id));
+  if (!n) return showToast('❌ Note not found');
+
+  // Build a clean shareable URL
+  const base = window.location.origin + window.location.pathname;
+  const shareUrl = base + '?note=' + encodeURIComponent(id);
+
+  if (navigator.share) {
+    // Native share sheet on mobile (Android/iOS)
+    navigator.share({
+      title: n.title,
+      text:  n.subject + ' · ' + n.branch + ' · ' + n.sem,
+      url:   shareUrl
+    }).then(() => showToast('✅ Shared!')).catch(() => copyToClipboard(shareUrl));
+  } else {
+    copyToClipboard(shareUrl);
+  }
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('🔗 Link copied to clipboard!'))
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  // Works even on HTTP (non-HTTPS) localhost
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity  = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('🔗 Link copied to clipboard!');
+  } catch {
+    showToast('🔗 Share URL: ' + text);
+  }
+  document.body.removeChild(ta);
+}
+
+async function likeNote(id, btn) {
+  const n = allNotes.find(x=>x.id===id);
+  try {
+    const res  = await fetch(`/api/notes/${id}/like`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      n.downloads = data.likes;
+      btn.textContent = `❤️ ${data.likes}`;
+      showToast('❤️ Liked!');
+    }
+  } catch {
+    // Fallback: optimistic update if server unreachable
+    n.downloads++;
+    btn.textContent = `❤️ ${n.downloads}`;
+    showToast('❤️ Liked!');
+  }
+}
+
+// ── UPLOAD ──
+function handleFileSelect(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const preview = document.getElementById('filePreview');
+  const list = document.getElementById('fileList');
+  preview.style.display = 'block';
+  list.innerHTML = files.map(f => `
+    <span style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:.76rem;color:var(--text);">
+      📎 ${f.name} <span style="color:var(--muted);">(${(f.size/1024/1024).toFixed(1)}MB)</span>
+    </span>`).join('');
+}
+
+async function uploadNotes() {
+  const title   = document.getElementById('noteTitle').value.trim();
+  const branch  = document.getElementById('noteBranch').value;
+  const subject = document.getElementById('noteSubject').value.trim();
+  const sem     = document.getElementById('noteSem').value;
+  const files   = document.getElementById('fileInput').files;
+
+  if (!files.length) return showToast('⚠️ Please select at least one file');
+  if (!title)        return showToast('⚠️ Please add a note title');
+  if (!branch)       return showToast('⚠️ Please select your branch');
+
+  // Check login
+  const token = localStorage.getItem('notenest_token');
+  if (!token) {
+    showToast('⚠️ Please sign in before uploading');
+    return openModal('login');
+  }
+
+  // Show progress bar (indeterminate pulse while uploading)
+  const pw = document.getElementById('progressWrap');
+  const pb = document.getElementById('progressBar');
+  pw.style.display = 'block';
+  pb.style.width = '0%';
+  pb.style.transition = 'width 0.4s ease';
+
+  // Fake progress up to 85% while request is in flight
+  let fakeProgress = 0;
+  const fakeInterval = setInterval(() => {
+    fakeProgress += Math.random() * 12;
+    if (fakeProgress < 85) pb.style.width = fakeProgress + '%';
+  }, 300);
+
+  try {
+    const fd = new FormData();
+    fd.append('title',    title);
+    fd.append('branch',   branch);
+    fd.append('subject',  subject || 'General');
+    fd.append('semester', sem || 'Sem 1');
+    fd.append('tags',     subject || branch);
+    Array.from(files).forEach(f => fd.append('files', f));
+
+    const res  = await fetch('/api/notes/upload', {
+      method:  'POST',
+      headers: { Authorization: 'Bearer ' + token },
+      body:    fd
+    });
+    const data = await res.json();
+
+    clearInterval(fakeInterval);
+
+    if (res.ok) {
+      // Complete the bar
+      pb.style.width = '100%';
+      setTimeout(() => { pw.style.display = 'none'; pb.style.width = '0%'; }, 600);
+
+      // Add returned note to top of local list and re-render
+      const n = data.note;
+      const typeMap = { pdf:'PDF', png:'Image', jpg:'Image', jpeg:'Image', pptx:'PPTX', docx:'DOCX' };
+      const ext = files[0].name.split('.').pop().toLowerCase();
+      allNotes.unshift({
+        id:          n._id,
+        title:       n.title,
+        subject:     n.subject,
+        branch:      n.branch,
+        sem:         n.semester || 'Sem 1',
+        type:        n.files?.[0]?.fileType || typeMap[ext] || 'PDF',
+        size:        n.files?.[0] ? (n.files[0].size / 1024 / 1024).toFixed(1) + ' MB' : '—',
+        author:      currentUser?.name || 'You',
+        authorColor: '#00e5b0',
+        date:        'Just now',
+        downloads:   0,
+        tags:        n.tags || [subject || branch]
+      });
+      filterNotes();
+
+      // Reset form
+      document.getElementById('noteTitle').value  = '';
+      document.getElementById('noteSubject').value = '';
+      document.getElementById('noteBranch').value  = '';
+      document.getElementById('noteSem').value     = '';
+      document.getElementById('fileInput').value   = '';
+      document.getElementById('filePreview').style.display = 'none';
+
+      showToast('✅ Notes uploaded successfully!');
+      document.getElementById('notes').scrollIntoView({ behavior: 'smooth' });
+
+      // Refresh live stats from server
+      loadStats();
+
+    } else {
+      pw.style.display = 'none'; pb.style.width = '0%';
+      showToast('❌ ' + (data.error || 'Upload failed'));
+    }
+  } catch (err) {
+    clearInterval(fakeInterval);
+    pw.style.display = 'none'; pb.style.width = '0%';
+    showToast('❌ Network error — is the server running?');
+    console.error('Upload error:', err);
+  }
+}
+
+// ── DRAG AND DROP ──
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  const input = document.getElementById('fileInput');
+  const dt = new DataTransfer();
+  Array.from(e.dataTransfer.files).forEach(f => dt.items.add(f));
+  input.files = dt.files;
+  handleFileSelect(input);
+});
+
+// ── AUTH STATE ──
+let currentUser = JSON.parse(localStorage.getItem('notenest_user') || 'null');
+
+function updateNavForAuth() {
+  const btn = document.querySelector('.btn-nav');
+  if (!btn) return;
+  if (currentUser) {
+    btn.textContent = '👤 ' + currentUser.name.split(' ')[0];
+    btn.onclick = logoutUser;
+  } else {
+    btn.textContent = 'Sign In';
+    btn.onclick = () => openModal('login');
+  }
+}
+
+function logoutUser() {
+  localStorage.removeItem('notenest_token');
+  localStorage.removeItem('notenest_user');
+  currentUser = null;
+  updateNavForAuth();
+  showToast('👋 Signed out');
+}
+
+// ── LOAD NOTES FROM SERVER ──
+async function loadNotes() {
+  try {
+    const res  = await fetch('/api/notes?limit=50');
+    const data = await res.json();
+    if (res.ok && data.notes.length) {
+      allNotes = data.notes.map(n => ({
+        id:          n._id,
+        title:       n.title,
+        subject:     n.subject,
+        branch:      n.branch,
+        sem:         n.semester || 'Sem 1',
+        type:        n.files?.[0]?.fileType || 'PDF',
+        size:        n.files?.[0] ? (n.files[0].size/1024/1024).toFixed(1)+' MB' : '—',
+        author:      n.uploadedBy?.name || 'Anonymous',
+        authorColor: '#00e5b0',
+        date:        new Date(n.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'}),
+        downloads:   n.downloads || 0,
+        tags:        n.tags || []
+      }));
+      filterNotes();
+    }
+  } catch {
+    // Server not running — keep sample data
+    console.info('ℹ️ Server not reachable, showing sample notes');
+  }
+}
+
+// ── LOAD STATS FROM SERVER ──
+async function loadStats() {
+  try {
+    const res  = await fetch('/api/stats');
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('statNotes').textContent   = data.notes;
+      document.getElementById('statUsers').textContent   = data.users;
+      document.getElementById('statDL').textContent      = data.downloads > 999 ? (data.downloads/1000).toFixed(1)+'k' : data.downloads;
+    }
+  } catch { /* keep static values */ }
+}
+
+// ── MODAL (with real API) ──
+function openModal(type) {
+  if (type === 'login') {
+    document.getElementById('modalTitle').textContent = '👤 Sign In';
+    document.getElementById('modalBody').innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="loginEmail" type="email" placeholder="student@college.edu"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="loginPassword" type="password" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter') confirmModal()"/>
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:4px;">
+        Don't have an account?
+        <span style="color:var(--accent);cursor:pointer;" onclick="openModal('register')">Register here</span>
+      </div>`;
+    document.getElementById('modalConfirm').textContent = 'Sign In';
+    document.getElementById('modalConfirm').onclick = loginUser;
+
+  } else if (type === 'register') {
+    document.getElementById('modalTitle').textContent = '📝 Create Account';
+    document.getElementById('modalBody').innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" id="regName" placeholder="e.g. Arjun Mehta"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">College Email</label>
+        <input class="form-input" id="regEmail" type="email" placeholder="name@college.edu"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Branch</label>
+        <select class="form-input" id="regBranch">
+          <option>Computer Engineering</option>
+          <option>Electronics & TC</option>
+          <option>Mechanical</option>
+          <option>Civil</option>
+          <option>Information Technology</option>
+          <option>Electrical</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="regPassword" type="password" placeholder="Min 6 characters"
+          onkeydown="if(event.key==='Enter') confirmModal()"/>
+      </div>`;
+    document.getElementById('modalConfirm').textContent = 'Create Account';
+    document.getElementById('modalConfirm').onclick = registerUser;
+  }
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+async function loginUser() {
+  const email    = document.getElementById('loginEmail')?.value?.trim();
+  const password = document.getElementById('loginPassword')?.value;
+  if (!email || !password) return showToast('⚠️ Fill in all fields');
+
+  const btn = document.getElementById('modalConfirm');
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+
+  try {
+    const res  = await fetch('/api/auth/login', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      localStorage.setItem('notenest_token', data.token);
+      localStorage.setItem('notenest_user',  JSON.stringify(data.user));
+      currentUser = data.user;
+      updateNavForAuth();
+      showToast('✅ Welcome back, ' + data.user.name + '!');
+      closeModal();
+    } else {
+      showToast('❌ ' + (data.error || 'Login failed'));
+    }
+  } catch {
+    showToast('❌ Cannot reach server — is it running?');
+  } finally {
+    btn.textContent = 'Sign In'; btn.disabled = false;
+  }
+}
+
+async function registerUser() {
+  const name     = document.getElementById('regName')?.value?.trim();
+  const email    = document.getElementById('regEmail')?.value?.trim();
+  const branch   = document.getElementById('regBranch')?.value;
+  const password = document.getElementById('regPassword')?.value;
+  if (!name || !email || !password) return showToast('⚠️ Fill in all fields');
+  if (password.length < 6)          return showToast('⚠️ Password must be at least 6 characters');
+
+  const btn = document.getElementById('modalConfirm');
+  btn.textContent = 'Creating…'; btn.disabled = true;
+
+  try {
+    const res  = await fetch('/api/auth/register', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name, email, password, branch })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      localStorage.setItem('notenest_token', data.token);
+      localStorage.setItem('notenest_user',  JSON.stringify(data.user));
+      currentUser = data.user;
+      updateNavForAuth();
+      showToast('🎉 Account created! Welcome, ' + data.user.name + '!');
+      closeModal();
+      loadStats();
+    } else {
+      showToast('❌ ' + (data.error || 'Registration failed'));
+    }
+  } catch {
+    showToast('❌ Cannot reach server — is it running?');
+  } finally {
+    btn.textContent = 'Create Account'; btn.disabled = false;
+  }
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function closeModalOutside(e) { if(e.target===document.getElementById('modalOverlay')) closeModal(); }
+function confirmModal() {
+  // Delegates to whichever handler was set by openModal()
+  document.getElementById('modalConfirm').click();
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── MOBILE NAV ──
+function toggleMobileNav() {
+  document.getElementById('mobileNav').classList.toggle('open');
+}
+
+// ── INIT ──
+renderNotes(allNotes);   // show sample data immediately
+updateNavForAuth();      // restore login state from localStorage
+loadNotes();             // fetch real notes from server (replaces samples if server is up)
+loadStats();             // fetch real stats from server
+</script>
+</body>
+</html>
